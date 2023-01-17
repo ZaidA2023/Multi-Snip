@@ -8,21 +8,22 @@ import pyautogui
 import PySimpleGUI as sg
 import wn
 import string
-from re import sub
-import openai
 import json
 from revChatGPT.ChatGPT import Chatbot
 
-
+#Loads in Session token from .json file and activates it
 conf = json.load(open("chatgpt.json"))
 chatbot = Chatbot(conf)
-openai.api_key = "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"
+#Points to OCR program
 tess.pytesseract.tesseract_cmd = "C:/Users/zaid2/Tesseract-OCR/tesseract.exe"
 en = wn.Wordnet('oewn:2021')
+#Initializes global variables
 x = False
 res = True
 userinput=""
 type = "no"
+#Function to capture highlighted part of screen
+#Second half recognizes type of info highlighted and generates an appropriate response
 def take_bounded_screenshot(self,x1, y1, x2, y2):
     global type
     image = pyautogui.screenshot(region=(x1, y1, x2, y2))
@@ -70,19 +71,22 @@ def take_bounded_screenshot(self,x1, y1, x2, y2):
                 sg.popup("Definitions: "+"\n"+'\n'.join(definitions)+"\n"+"\n"+"Synonyms: " + "\n"+ ', '.join(synonyms))
             else: sg.popup("Sorry, try again")
 
-
+#Sets fonts for the GUI
 LARGE_FONT= ("Verdana", 12)
 NORM_FONT= ("Verdana", 10)
 SMALL_FONT= ("Verdana", 8)
 
     
 class Application():
-
+    #Function that asks ChatGPT question and gives user response
     def retrieve_input(self):
         global userinput
         input = self.textBox.get("1.0",'end-1c')
-        sg.popup(chatbot.ask(input))
+        ans = chatbot.ask(input)
+        print(ans)
+        sg.popup(ans['message'])
 
+    #Initial UI make and tells buttons their jobs
     def __init__(self, master):
         global userinput
         self.snip_surface = None
@@ -92,8 +96,9 @@ class Application():
         self.current_x = None
         self.current_y = None
         self.create_screen_canvas
-        root.geometry('200x70+200+200')  # set new geometry 8675*6745/5^3     BACK   MAGIC
+        root.geometry('200x250+200+200')  #  8675*6745/5     BACK   MAGIC
         root.title('Snip')
+        
 
         self.menu_frame = Frame(master)
         self.menu_frame.pack(fill=BOTH, expand=YES, padx=1, pady=1)
@@ -104,7 +109,7 @@ class Application():
         self.snipButton = Button(self.buttonBar, width=15, height=5, command=self.create_screen_canvas, background="green", text="Click to Snip")
         self.textBox = Text(root, height=2, width =10)
         self.textBox.pack()
-        buttonCommit=Button(root, height=1, width=10, text="Commit", command=lambda: self.retrieve_input(),)
+        buttonCommit=Button(root, height=1, width=10, text="Search", command=lambda: self.retrieve_input(),)
         buttonCommit.pack()
         self.snipButton.pack()
 
@@ -114,7 +119,7 @@ class Application():
         self.picture_frame = Frame(self.master_screen, background="maroon3")
         self.picture_frame.pack(fill=BOTH, expand=YES)
     
-
+    #Creates a transparent screen and hides initial UI
     def create_screen_canvas(self):
         self.master_screen.deiconify()
         root.withdraw()
@@ -130,49 +135,53 @@ class Application():
         self.master_screen.lift()
         self.master_screen.attributes("-topmost", True)
 
+    #Tracks coordinates of mouse and uses math to find the x1,x2,y1,y2 of snipping rectangle
     def on_button_release(self, event):
 
         if self.start_x <= self.current_x and self.start_y <= self.current_y:
-            #print("right down")
+            #right down
             take_bounded_screenshot(self, self.start_x, self.start_y, self.current_x - self.start_x, self.current_y - self.start_y)
 
         elif self.start_x >= self.current_x and self.start_y <= self.current_y:
-            #print("left down")
+            #left down
             take_bounded_screenshot(self, self.current_x, self.start_y, self.start_x - self.current_x, self.current_y - self.start_y)
 
         elif self.start_x <= self.current_x and self.start_y >= self.current_y:
-            #print("right up")
+            #right up
             take_bounded_screenshot(self, self.start_x, self.current_y, self.current_x - self.start_x, self.start_y - self.current_y)
 
         elif self.start_x >= self.current_x and self.start_y >= self.current_y:
-            #print("left up")
+            #left up
             take_bounded_screenshot(self, self.current_x, self.current_y, self.start_x - self.current_x, self.start_y - self.current_y)
 
         self.exit_screenshot_mode()
         return event
 
+    #Destroys the transparent screen and shows UI
     def exit_screenshot_mode(self):
         self.snip_surface.destroy()
         self.master_screen.withdraw()
         root.deiconify()
 
+    #Saves mouse drag start position
     def on_button_press(self, event):
-        # save mouse drag start position
         self.start_x = self.snip_surface.canvasx(event.x)
         self.start_y = self.snip_surface.canvasy(event.y)
         self.snip_surface.create_rectangle(0, 0, 1, 1, outline='red', width=3, fill="maroon3")
 
+    #Expands rectangle as you drag the mouse
     def on_snip_drag(self, event):
         self.current_x, self.current_y = (event.x, event.y)
-        # expand rectangle as you drag the mouse
         self.snip_surface.coords(1, self.start_x, self.start_y, self.current_x, self.current_y)
 
+
 def block_focus(window):
-    for key in window.key_dict:    # Remove dash box of all Buttons
+    for key in window.key_dict: 
         element = window[key]
         if isinstance(element, sg.Button):
             element.block_focus()
 
+#Customizes part of speech popup, records response, and sends it
 def PopUp():
     global type
     def popup_choice(speech):
@@ -228,15 +237,6 @@ def PopUp():
             break
 
     window.close()
-
-
-#def aisolve(user):
-    #response = openai.Completion.create(
-    #model="text-davinci-003",
-    #prompt=user,
-    #temperature=0.6,
-    #)
-    #return response
 
 if __name__ == '__main__':
     root = Tk()
