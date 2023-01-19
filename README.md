@@ -22,9 +22,8 @@ Here are the steps to get the session token:
 2. Open the Chrome Developer Tools e.g. by pressing Ctrl + Shift + I 
 3. Click on the application tab 
 4. Copy the value for the __Secure-next-auth.session-token cookie
-5. In this applications files there should be a "chatgpt.json" file
-6. Paste the token in between the two quotations
-7. Save the file and you should be good
+5. Start application
 
 #### How-to 
-    To be written
+    For the first time opening this application it will prompt you to paste your token, you will not need it again
+    For the rest, explore! Most of what each aspect can do is in the capabilities section
