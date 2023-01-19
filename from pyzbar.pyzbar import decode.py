@@ -11,7 +11,7 @@ import string
 import json
 from revChatGPT.ChatGPT import Chatbot
 
-#Loads in Session token from .json file and activates it
+#Loads in Session token from .json file and activates it       where did the moon come from
 conf = json.load(open("chatgpt.json"))
 chatbot = Chatbot(conf)
 #Points to OCR program
@@ -29,7 +29,6 @@ def take_bounded_screenshot(self,x1, y1, x2, y2):
     image = pyautogui.screenshot(region=(x1, y1, x2, y2))
     text = (tess.image_to_string(image)).strip()
     pc.copy(text)
-    print(text)
     synonyms = []
     synonyms.append("")
     definitions = []
@@ -38,7 +37,6 @@ def take_bounded_screenshot(self,x1, y1, x2, y2):
     definitions.clear()
     self.exit_screenshot_mode()  
     try:
-        print(eval(text))
         sg.popup(eval(text))
         return
     except SyntaxError:
@@ -50,25 +48,28 @@ def take_bounded_screenshot(self,x1, y1, x2, y2):
     if res == False: 
         text = text.translate(str.maketrans('','',string.punctuation))
         x = True
-        print(x)
-        print(text)
     if len(text.split()) > 1:
-        sg.popup("I can only process one word at a time")
+        if PopUp2():
+            curr = Application(root)
+            print(text)
+            curr.retrieve_input(text)
+            
     elif((text).isalnum()):
         PopUp()
-        print(type)
         if type != "p": 
             try:
-                ss = en.synsets(text, pos = type)
+                ss = en.synsets(text)
             except: IndexError
             for ss in wn.synsets(text):
                 definitions.append(ss.definition()) 
                 definitions.append("\n")
                 synonyms = synonyms + ss.lemmas()
-            if definitions: 
-                synonyms = list(set(synonyms))
+            if type=="Definition": 
                 definitions = list(set(definitions))
-                sg.popup("Definitions: "+"\n"+'\n'.join(definitions)+"\n"+"\n"+"Synonyms: " + "\n"+ ', '.join(synonyms))
+                sg.popup("Definitions: "+"\n"+'\n'.join(definitions))
+            elif type=="Synonyms":
+                synonyms = list(set(synonyms))
+                sg.popup("Synonyms: " + "\n"+ ', '.join(synonyms))
             else: sg.popup("Sorry, try again")
 
 #Sets fonts for the GUI
@@ -78,12 +79,20 @@ SMALL_FONT= ("Verdana", 8)
 
     
 class Application():
+    
     #Function that asks ChatGPT question and gives user response
-    def retrieve_input(self):
+    def retrieve_input(self, pinput):
         global userinput
-        input = self.textBox.get("1.0",'end-1c')
-        ans = chatbot.ask(input)
-        print(ans)
+        print(pinput)
+        if len(pinput)>1:
+            self.snipButton.destroy()
+            self.entry.destroy()
+            self.buttonCommit.destroy()
+            ans = chatbot.ask(pinput+", explain simply")
+        else: 
+            input = self.entry.get()
+            ans = chatbot.ask(input+", explain simply")
+            
         sg.popup(ans['message'])
 
     #Initial UI make and tells buttons their jobs
@@ -96,8 +105,20 @@ class Application():
         self.current_x = None
         self.current_y = None
         self.create_screen_canvas
-        root.geometry('200x250+200+200')  #  8675*6745/5     BACK   MAGIC
+        root.geometry('500x300+200+200')  #  8675*6745/5     BACK   MAGIC
         root.title('Snip')
+        def on_entry_click(event):
+            """function that gets called whenever entry is clicked"""
+            if self.entry.get() == 'Search Anything':
+                self.entry.delete(0, "end") # delete all the text in the entry
+                self.entry.insert(0, '') #Insert blank for user input
+                self.buttonCommit.pack()
+                self.entry.config(fg = 'black')
+        def on_focusout(event):
+            if self.entry.get() == '':
+                self.entry.insert(0, 'Search Anything')
+                self.entry.config(fg = 'grey')
+                self.buttonCommit.pack_forget()
         
 
         self.menu_frame = Frame(master)
@@ -105,13 +126,27 @@ class Application():
 
         self.buttonBar = Frame(self.menu_frame, bg="")
         self.buttonBar.pack()
+        #label = tk.Label(root, text="Search: ")
+        #label.pack(side="left")
 
+        self.entry = tk.Entry(root, bd=1)
+        self.entry.insert(0, 'Search Anything')
+        self.entry.bind('<FocusIn>', on_entry_click)
+        self.entry.bind('<FocusOut>', on_focusout)
+        self.entry.config(fg = 'grey')
+        self.entry.pack(expand=True, fill = 'x', padx=40)
         self.snipButton = Button(self.buttonBar, width=15, height=5, command=self.create_screen_canvas, background="green", text="Click to Snip")
-        self.textBox = Text(root, height=2, width =10)
-        self.textBox.pack()
-        buttonCommit=Button(root, height=1, width=10, text="Search", command=lambda: self.retrieve_input(),)
-        buttonCommit.pack()
+        #self.textBox = Text(root, height=5, width =15)
+        #self.textBox.pack()
+        self.buttonCommit=Button(root, height=1, width=10, text="Search", command=lambda: combine())
         self.snipButton.pack()
+        def combine():
+            self.retrieve_input("A")
+            self.entry.delete(0, "end")
+            self.entry.insert(0, 'Search Anything')
+            self.entry.config(fg = 'grey')
+            self.buttonCommit.pack_forget()
+            root.focus_set()
 
         self.master_screen = Toplevel(root)
         self.master_screen.withdraw()
@@ -181,27 +216,21 @@ def block_focus(window):
         if isinstance(element, sg.Button):
             element.block_focus()
 
+
 #Customizes part of speech popup, records response, and sends it
 def PopUp():
     global type
     def popup_choice(speech):
-        print(speech)
-        if(speech=="Copy Text"): 
-            return "p"
-        if(speech=="Noun"):  
-            return "n"
-        elif(speech=="Verb"):
+        if(speech=="Definition"): 
+            return "Definition"
+        if(speech=="Synonyms"):  
+            return "Synonyms"
+        elif(speech=="Copy Text"):
             return "v"
-        elif(speech=="Adverb"):
-            return "r"
-        elif(speech=="Adjective"):
-            return "a"
-        elif(speech=="Conjunction"):
-            return "c"
         else: return "u"
 
     items = [
-        "Noun", "Verb", "Adjective", " Adverb", "Conjunction", "I don't know", "Copy Text"
+        "Definition","Synonyms", "Copy Text"
     ]
     length = len(items)
     size = (max(map(len, items)), 1)
@@ -235,6 +264,46 @@ def PopUp():
             speech = event
             type = popup_choice(speech)
             break
+
+    window.close()
+
+def PopUp2():
+    items = ["Yes", "No"]
+    length = len(items)
+    size = (max(map(len, items)), 1)
+
+    sg.theme("DarkBlue3")
+    sg.set_options(font=("Courier New", 11))
+
+    column_layout = []
+    line = []
+    num = 4
+    for i, item in enumerate(items):
+        line.append(sg.Button(item, size=size, metadata=False))
+        if i%num == num-1 or i==length-1:
+            column_layout.append(line)
+            line = []
+
+    layout = [
+        [sg.Text("I can only process one word at a time."+"\n"+"Would you like to search this?")],
+        [sg.Column(column_layout)],
+    ]
+    window=sg.Window("Search", layout, use_default_focus=False, finalize=True)
+    block_focus(window)
+
+    sg.theme("DarkGreen3")
+    while True:
+
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED:
+            break
+        elif event in items:
+            if event == "Yes":
+                window.close() 
+                return True
+            else: 
+                window.close()
+                return False            
 
     window.close()
 
