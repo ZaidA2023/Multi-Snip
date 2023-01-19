@@ -1,6 +1,7 @@
 from PIL import Image, ImageGrab
 import pytesseract as tess
 import numpy as nm
+import os
 import tkinter as tk
 from tkinter import *
 import pyperclip as pc
@@ -12,6 +13,22 @@ import json
 from revChatGPT.ChatGPT import Chatbot
 
 #Loads in Session token from .json file and activates it       where did the moon come from
+
+with open('chatgpt.json', "a+") as out_file:
+    if(os.stat('chatgpt.json').st_size==0):
+        layout = [
+        [sg.Text('Please enter your auth token')], [sg.InputText('Token', size =(15, 1), key="OUTPUT")],
+        [sg.Submit(), sg.Cancel()]
+        ]
+        window = sg.Window('Token entry window', layout)
+        event, value = window.read()
+        if event =="Submit":
+            val = value["OUTPUT"]
+            dict={"session_token":val}
+            print(dict)
+        
+        window.close()
+        json.dump(dict, out_file)
 conf = json.load(open("chatgpt.json"))
 chatbot = Chatbot(conf)
 #Points to OCR program
