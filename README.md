@@ -25,5 +25,5 @@ Here are the steps to get the session token:
 5. Start application
 
 #### How-to 
-    For the first time opening this application it will prompt you to paste your token, you will not need it again
-    For the rest, explore! Most of what each aspect can do is in the capabilities section
+For the first time opening this application it will prompt you to paste your token, you will not need it again
+For the rest, explore! Most of what each aspect can do is in the capabilities section
